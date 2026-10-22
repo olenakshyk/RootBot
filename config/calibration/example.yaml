@@ -1,0 +1,8 @@
+# Example output of scripts/calibrate_board_to_robot.py.
+# Real files in this folder are generated per workstation and are not committed.
+board_to_robot:
+  rotation_rad: 0.0
+  translation_mm: [0.0, 0.0]
+  table_z_mm: 0.0
+  max_residual_mm: 0.0
+  date: "YYYY-MM-DD"

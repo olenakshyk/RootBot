@@ -1,0 +1,43 @@
+# Default settings. Override locally in config/local.yaml (not committed).
+
+robot:
+  ip: "192.168.1.xxx"        # set in config/local.yaml
+  speed_mm_s: 100            # TCP speed during play
+  debug_speed_mm_s: 50       # TCP speed when testing new motion code
+  acc_mm_s2: 500
+  home_pose_mm: [300, 0, 300, 180, 0, 0]   # x, y, z, roll, pitch, yaw (deg) - TBD
+  # Heights relative to table surface (table_z comes from calibration)
+  heights_mm:
+    safe: 80
+    approach: 20
+    grasp: 8                 # TBD: depends on piece height and gripper
+    release: 2
+  # Software workspace limits in robot base frame (second layer after xArm Studio safety boundary)
+  workspace_mm:
+    x: [100, 700]
+    y: [-450, 450]
+    z: [-20, 400]
+
+camera:
+  index: 0
+  resolution: [1920, 1080]
+  intrinsics_file: config/calibration/camera.yaml
+
+board:
+  map_file: config/maps/autumn.yaml
+  aruco_dictionary: DICT_4X4_50
+  # Marker centers in board frame (mm), measured once. Marker 0 is the origin.
+  markers:
+    0: [0, 0]
+    1: [0, 0]                # TBD
+    2: [0, 0]                # TBD
+    3: [0, 0]                # TBD
+  warp_px_per_mm: 2
+  board_to_robot_file: config/calibration/board_to_robot.yaml
+
+supply:
+  # Slots of the bot's warrior tray, board frame (mm) - TBD after tray is printed
+  slots_mm: []
+
+game:
+  dice: software             # software | manual

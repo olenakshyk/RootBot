@@ -1,0 +1,51 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Tools
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Secrets & local settings ---
+.env
+config/local.yaml
+
+# --- Calibration (specific to each workstation) ---
+config/calibration/*.yaml
+!config/calibration/example.yaml
+
+# --- Data, datasets, models ---
+data/*
+!data/.gitkeep
+models/*
+!models/.gitkeep
+*.pt
+*.pth
+*.onnx
+
+# --- Logs & recordings ---
+logs/
+*.log
+*.mp4
+*.avi

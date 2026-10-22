@@ -1,0 +1,8 @@
+# Хто автоматично отримує запит на рев'ю. Замініть @TBD на GitHub-логіни.
+/src/rootbot/game/    @TBD-game
+/src/rootbot/vision/  @TBD-vision
+/src/rootbot/robot/   @TBD-robot
+/hardware/            @TBD-robot
+/src/rootbot/app/     @TBD-app
+/src/rootbot/common/  @TBD-game @TBD-vision @TBD-robot @TBD-app
+/docs/                @TBD-app
