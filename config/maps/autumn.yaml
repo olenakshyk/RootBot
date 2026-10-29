@@ -4,7 +4,8 @@
 #   priority:  1..12, clearing priority used by the Mechanical Marquise (unique)
 #   corner:    true for the 4 corner clearings
 #   adjacent:  ids of clearings connected by a path (must be symmetric)
-#   center_mm: clearing center in board frame (mm), measured from the photo / with a ruler
+#   center_mm: clearing center in board frame (mm), taken from the board reference image
+#              (px / scale) or measured with a ruler
 #   radius_mm: approximate clearing radius
 # tests/game/test_board.py validates this file once it is filled in.
 
