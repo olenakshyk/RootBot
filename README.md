@@ -100,6 +100,20 @@ python -m rootbot.app.main --mock-robot --mock-camera data/samples
 
 > ⚠️ Перед роботою зі **справжньою** рукою прочитайте [docs/hardware-and-safety.md](docs/hardware-and-safety.md).
 
+## Як ми працюємо з git
+
+Є лише одна гілка: **`main`**. Комітити в неї напряму не можна, усі зміни потрапляють туди **тільки через pull request**.
+
+1. На кожну задачу створюємо гілку від свіжого `main`: `<трек>/<issue>-<коротко>`, напр. `vision/12-board-homography`.
+2. Відкриваємо PR у `main`. PR маленький (орієнтир до ~400 рядків(або як пощастить)), в описі пишемо `Closes #12`,
+   тоді issue закриється сам після merge.
+3. Merge можливий лише після зеленого CI і **мінімум 2 approve** від інших людей. Зміни в
+   [інтерфейсах між модулями](docs/architecture.md#ключові-інтерфейси) схвалюють власники обох модулів.
+4. Merge: **Squash and merge**.
+
+> Обов'язкові PR забезпечує захист гілки `main` на GitHub (Settings → Branches): «Require a pull request
+> before merging» з 1 approve і «Require status checks to pass» (CI).
+
 ## Документація
 
 | Документ | Про що |
@@ -112,7 +126,6 @@ python -m rootbot.app.main --mock-robot --mock-camera data/samples
 | [docs/hardware-and-safety.md](docs/hardware-and-safety.md) | Обладнання, розміщення на столі, **правила безпеки** |
 | [docs/roadmap.md](docs/roadmap.md) | Етапи, дедлайни, розподіл ролей |
 | [docs/decisions/](docs/decisions/) | Записи архітектурних рішень (ADR) |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Як працюємо з git, гілками, PR і тікетами |
 
 ## Команда
 
