@@ -18,7 +18,7 @@ class Suit(Enum):
 
 
 class Faction(Enum):
-    MARQUISE = "marquise"  # бот (Механічна Маркіза) грає фігурками Маркізи де Кіт
+    MARQUISE_BOT = "marquise_bot"  # бот (Механічна Маркіза) грає фігурками Маркізи де Кіт
     EYRIE = "eyrie"
     ALLIANCE = "alliance"
     VAGABOND = "vagabond"
