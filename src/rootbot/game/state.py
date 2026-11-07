@@ -33,7 +33,7 @@ class GameState:
         """Фігурки фракції на галявині (нулі, якщо їх там немає)."""
         return self._at(clearing).get(faction, PieceCounts())
 
-    def ruler(self, clearing: ClearingId) -> Faction | None:
+    def ruling_faction(self, clearing: ClearingId) -> Faction | None:
         """Хто панує галявиною: найбільше воїнів + будівель; нічия означає, що не панує ніхто.
 
         Виняток: Династія (Lords of the Forest) панує й при нічиїй, якщо має там воїна чи будівлю.
@@ -49,28 +49,29 @@ class GameState:
             return Faction.EYRIE
         return None
 
-    def rules(self, clearing: ClearingId, faction: Faction = BOT) -> bool:
-        return self.ruler(clearing) == faction
-
-    def enemies(self, clearing: ClearingId) -> list[Faction]:
-        """Суперники бота, у яких є хоч одна фігурка на галявині, у порядку підготовки."""
+    def enemies(self, clearing: ClearingId) -> dict[Faction, PieceCounts]:
+        """Фігурки суперників бота, у яких є хоч одна фігурка на галявині, у порядку підготовки."""
         here = self._at(clearing)
-        return [f for f in SETUP_ORDER if f != BOT and f in here and _total(here[f]) > 0]
+        return {f: here[f] for f in SETUP_ORDER if f != BOT and f in here and _total(here[f]) > 0}
 
     def enemy_pieces(self, clearing: ClearingId) -> int:
         """Усі ворожі фігурки на галявині: воїни, будівлі, жетони й пішаки всіх суперників разом."""
-        here = self._at(clearing)
-        return sum(_total(here[f]) for f in self.enemies(clearing))
+        return sum(_total(c) for c in self.enemies(clearing).values())
 
     def defender(self, clearing: ClearingId) -> Faction | None:
         """З ким бот б'ється на галявині: найбільше фігурок → найбільше ПО → раніше в порядку
         підготовки. None, якщо ворогів немає."""
-        here = self._at(clearing)
-        return min(
-            self.enemies(clearing),
-            key=lambda f: (-_total(here[f]), -self.scores.get(f, 0), SETUP_ORDER.index(f)),
+        enemies = self.enemies(clearing)
+        return max(
+            enemies,
+            key=lambda f: (_total(enemies[f]), self.scores.get(f, 0), -SETUP_ORDER.index(f)),
             default=None,
         )
+
+    def clearings_with(self, faction: Faction, *, warriors_only: bool = False) -> list[ClearingId]:
+        """Галявини, де фракція має хоч одну фігурку (чи воїна), у порядку пріоритету."""
+        count = (lambda c: c.warriors) if warriors_only else _total
+        return [c.id for c in self.board.by_priority() if count(self.counts(c.id, faction)) > 0]
 
     def _at(self, clearing: ClearingId) -> dict[Faction, PieceCounts]:
         if clearing not in self.board.clearings:

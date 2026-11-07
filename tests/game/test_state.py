@@ -29,59 +29,56 @@ def state(board, here=None, scores=None):
 
 
 def test_empty_clearing_nobody_rules(board):
-    assert state(board).ruler(C) is None
+    assert state(board).ruling_faction(C) is None
 
 
 def test_clearing_without_entry_nobody_rules(board):
-    assert GameState(board).ruler(ClearingId(1)) is None
+    assert GameState(board).ruling_faction(ClearingId(1)) is None
 
 
 def test_majority_rules(board):
     s = state(board, {BOT: pc(w=3), ALLIANCE: pc(w=2)})
-    assert s.ruler(C) == BOT
-    assert s.rules(C)
-    assert not s.rules(C, ALLIANCE)
+    assert s.ruling_faction(C) == BOT
 
 
 def test_buildings_count_for_rule(board):
-    assert state(board, {BOT: pc(w=2), ALLIANCE: pc(w=1, b=2)}).ruler(C) == ALLIANCE
+    assert state(board, {BOT: pc(w=2), ALLIANCE: pc(w=1, b=2)}).ruling_faction(C) == ALLIANCE
 
 
 def test_tie_nobody_rules(board):
     s = state(board, {BOT: pc(w=2), ALLIANCE: pc(w=1, b=1)})
-    assert s.ruler(C) is None
-    assert not s.rules(C)
+    assert s.ruling_faction(C) is None
 
 
 def test_tokens_do_not_count_for_rule(board):
-    assert state(board, {BOT: pc(w=1), ALLIANCE: pc(t=3)}).ruler(C) == BOT
+    assert state(board, {BOT: pc(w=1), ALLIANCE: pc(t=3)}).ruling_faction(C) == BOT
 
 
 def test_vagabond_never_rules(board):
     s = state(board, {VAGABOND: pc(p=1)})
-    assert s.ruler(C) is None
+    assert s.ruling_faction(C) is None
 
 
 def test_rule_compares_each_faction_separately(board):
     # 2 проти 1 і 1: бот панує, хоча ворогів разом стільки ж
-    assert state(board, {BOT: pc(w=2), EYRIE: pc(w=1), ALLIANCE: pc(b=1)}).ruler(C) == BOT
+    assert state(board, {BOT: pc(w=2), EYRIE: pc(w=1), ALLIANCE: pc(b=1)}).ruling_faction(C) == BOT
 
 
 def test_eyrie_rule_ties(board):
-    assert state(board, {BOT: pc(w=2), EYRIE: pc(w=1, b=1)}).ruler(C) == EYRIE
+    assert state(board, {BOT: pc(w=2), EYRIE: pc(w=1, b=1)}).ruling_faction(C) == EYRIE
 
 
 def test_eyrie_rule_three_way_tie(board):
     s = state(board, {BOT: pc(w=1), EYRIE: pc(b=1), ALLIANCE: pc(w=1)})
-    assert s.ruler(C) == EYRIE
+    assert s.ruling_faction(C) == EYRIE
 
 
 def test_eyrie_loses_without_tie(board):
-    assert state(board, {BOT: pc(w=3), EYRIE: pc(w=2)}).ruler(C) == BOT
+    assert state(board, {BOT: pc(w=3), EYRIE: pc(w=2)}).ruling_faction(C) == BOT
 
 
 def test_eyrie_with_only_tokens_does_not_rule(board):
-    assert state(board, {EYRIE: pc(t=1)}).ruler(C) is None
+    assert state(board, {EYRIE: pc(t=1)}).ruling_faction(C) is None
 
 
 # --- ворожі фігурки ---
@@ -98,7 +95,12 @@ def test_enemy_pieces_empty(board):
 
 def test_enemies_skip_zero_counts(board):
     s = state(board, {BOT: pc(w=1), EYRIE: pc(), VAGABOND: pc(p=1)})
-    assert s.enemies(C) == [VAGABOND]
+    assert s.enemies(C) == {VAGABOND: pc(p=1)}
+
+
+def test_enemies_in_setup_order(board):
+    s = state(board, {VAGABOND: pc(p=1), BOT: pc(w=1), ALLIANCE: pc(t=1), EYRIE: pc(w=2)})
+    assert list(s.enemies(C)) == [EYRIE, ALLIANCE, VAGABOND]
 
 
 def test_counts_default_to_zero(board):
@@ -144,12 +146,29 @@ def test_defender_ignores_bot_score(board):
     assert s.defender(C) == EYRIE
 
 
+# --- галявини з фігурками фракції ---
+
+
+def test_clearings_with_in_priority_order(board):
+    first, second, third = (c.id for c in board.by_priority()[:3])
+    s = GameState(board, pieces={third: {EYRIE: pc(w=1)}, first: {EYRIE: pc(t=1)}})
+    s = GameState(board, pieces={**s.pieces, second: {EYRIE: pc()}})  # нулі не рахуються
+    assert s.clearings_with(EYRIE) == [first, third]
+    assert s.clearings_with(ALLIANCE) == []
+
+
+def test_clearings_with_warriors_only(board):
+    s = GameState(board, pieces={ClearingId(1): {BOT: pc(b=1)}, ClearingId(2): {BOT: pc(w=1)}})
+    assert set(s.clearings_with(BOT)) == {ClearingId(1), ClearingId(2)}
+    assert s.clearings_with(BOT, warriors_only=True) == [ClearingId(2)]
+
+
 # --- некоректний стан ---
 
 
 def test_unknown_clearing_query(board):
     with pytest.raises(GameStateError, match="unknown clearing 13"):
-        state(board).ruler(ClearingId(13))
+        state(board).ruling_faction(ClearingId(13))
 
 
 @pytest.mark.parametrize(
