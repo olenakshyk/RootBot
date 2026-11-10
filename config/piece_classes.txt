@@ -1,0 +1,12 @@
+marquise_warrior
+eyrie_warrior
+alliance_warrior
+vagabond
+eyrie_building
+alliance_building
+alliance_token
+marquise_score
+eyrie_score
+alliance_score
+vagabond_score
+die
