@@ -8,6 +8,8 @@ from rootbot.game.board import load_board
 from rootbot.game.marquise_bot import (
     battles,
     birdsong,
+    card_given,
+    evening,
     moves,
     order_clearings,
     recruits,
@@ -380,3 +382,21 @@ def test_recruit_empty_supply(board):
 def test_recruit_rejects_unknown_craft_cost(board, cost):
     with pytest.raises(ValueError, match="craft cost"):
         recruit(board, BOT_AT_1_8_3, cost)
+
+
+# --- Вечір і риси бота ---
+
+
+@pytest.mark.parametrize(("left", "draw"), [(0, 5), (3, 2), (5, 0)])
+def test_evening_draws_up_to_schedule_size(left, draw):
+    assert evening(left, schedule_size=5) == draw
+
+
+@pytest.mark.parametrize("left", [-1, 6])
+def test_evening_rejects_impossible_schedule(left):
+    with pytest.raises(ValueError, match="cards_in_schedule"):
+        evening(left, schedule_size=5)
+
+
+def test_card_given_scores_for_bot():
+    assert card_given(points=1) == Score(1, "poor manual dexterity: card given to bot")

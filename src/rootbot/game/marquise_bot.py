@@ -162,6 +162,27 @@ def restarts_day(card: OrderCard) -> bool:
     return not card.craft_cost
 
 
+def evening(cards_in_schedule: int, *, schedule_size: int) -> int:
+    """Вечір: скільки карт оператор добирає праворуч у Розклад, щоб їх стало `schedule_size`.
+    Число береться з `game.evening` у config/default.yaml."""
+    if not 0 <= cards_in_schedule <= schedule_size:
+        raise ValueError(
+            f"cards_in_schedule must be in 0..{schedule_size}, got {cards_in_schedule}"
+        )
+    return schedule_size - cards_in_schedule
+
+
+def card_given(*, points: int) -> Score:
+    """Poor Manual Dexterity: гравець мав би дати боту карту (зокрема Бродяга, коли допомагає боту
+    й бере предмет з Items for Sale). Карта скидається, а бот отримує `points` ПО з
+    `game.traits` у config/default.yaml.
+
+    Інші риси бота нічого не рахують, їх виконують люди: карту з руки бота замінює верхня карта
+    колоди, а засідки (Hates Surprises) проти бота не граються.
+    """
+    return Score(points, "poor manual dexterity: card given to bot")
+
+
 def order_clearings(board: Board, card: OrderCard) -> list[ClearingId]:
     """Галявини масті карти наказу в порядку пріоритету. Птах діє як будь-яка масть: усі."""
     return [c.id for c in board.by_priority() if card.suit in (Suit.BIRD, c.suit)]
