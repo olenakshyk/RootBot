@@ -2,8 +2,10 @@
 # Див. docs/game-rules.md.
 from __future__ import annotations
 
-from rootbot.common.types import ClearingId, Faction, OrderCard, Suit
-from rootbot.game.actions import Battle, BattleResult, Score
+from dataclasses import replace
+
+from rootbot.common.types import ClearingId, Faction, OrderCard, PieceCounts, Suit
+from rootbot.game.actions import Battle, BattleResult, Move, Score
 from rootbot.game.board import Board
 from rootbot.game.state import BOT, GameState
 
@@ -80,6 +82,37 @@ def resolve_battle(
         keep_lost=bot_hits > bot_warriors and state.keep_clearing == battle.clearing,
         defender_hits=defender_hits,
     )
+
+
+def moves(state: GameState, card: OrderCard, *, stay_warriors: int) -> list[Move]:
+    """День, крок 2: рух. Галявини масті карти в порядку пріоритету; з кожної, якою бот панує і де
+    в нього більше `stay_warriors` воїнів, усі, крім `stay_warriors`, ідуть у сусідню галявину з
+    найбільшою кількістю ворожих фігурок (нічия: менший номер пріоритету). Число береться з
+    `game.move` у config/default.yaml.
+
+    Умова перевіряється на дошці після попередніх рухів цього ж кроку, тому воїни, які щойно
+    прийшли, рушають далі, якщо їхня галявина йде пізніше за пріоритетом. `state` не змінюється.
+    """
+    board = state.board
+    # Копія фігурок, у якій виконуємо рухи по черзі.
+    current = replace(
+        state,
+        pieces={c: {f: replace(n) for f, n in here.items()} for c, here in state.pieces.items()},
+    )
+    result = []
+    for src in order_clearings(board, card):
+        warriors = current.counts(src, BOT).warriors
+        if current.ruling_faction(src) != BOT or warriors <= stay_warriors:
+            continue
+        dst = max(
+            board.adjacent(src),
+            key=lambda c: (current.enemy_pieces(c), -board[c].priority),
+        )
+        count = warriors - stay_warriors
+        current.pieces[src][BOT].warriors -= count
+        current.pieces.setdefault(dst, {}).setdefault(BOT, PieceCounts()).warriors += count
+        result.append(Move(src, dst, count))
+    return result
 
 
 def order_clearings(board: Board, card: OrderCard) -> list[ClearingId]:

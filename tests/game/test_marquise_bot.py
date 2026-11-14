@@ -3,9 +3,15 @@ from pathlib import Path
 import pytest
 
 from rootbot.common.types import ClearingId, Faction, OrderCard, PieceCounts, Suit
-from rootbot.game.actions import Battle, BattleResult, Score
+from rootbot.game.actions import Battle, BattleResult, Move, Score
 from rootbot.game.board import load_board
-from rootbot.game.marquise_bot import battles, birdsong, order_clearings, resolve_battle
+from rootbot.game.marquise_bot import (
+    battles,
+    birdsong,
+    moves,
+    order_clearings,
+    resolve_battle,
+)
 from rootbot.game.state import BOT, GameState
 
 AUTUMN = Path(__file__).resolve().parents[2] / "config" / "maps" / "autumn.yaml"
@@ -234,3 +240,71 @@ def test_vagabond_battle_requires_swords(board):
 def test_invalid_rolls_rejected(board, rolls):
     with pytest.raises(ValueError, match="rolls"):
         fight(board, pc(w=1), pc(w=1), rolls)
+
+
+# --- День: рух ---
+# Мапа «Осінь»: галявина 1 (лис, пріоритет 1) межує з 2 (пріоритет 5), 4 (10) і 5 (9);
+# галявина 2 (кролик, пріоритет 5) межує з 1 і 3 (миша, пріоритет 2).
+
+STAY = {"stay_warriors": 3}  # як у config/default.yaml
+
+
+def move(board, pieces, suit=Suit.FOX, **rules):
+    return moves(state(board, pieces), card(suit), **(rules or STAY))
+
+
+def test_no_move_with_three_warriors(board):
+    assert move(board, {1: {BOT: pc(w=3)}}) == []
+
+
+def test_moves_all_but_three(board):
+    assert move(board, {1: {BOT: pc(w=7)}, 4: {EYRIE: pc(w=1)}}) == [Move(1, 4, 4)]
+
+
+def test_moves_to_neighbour_with_most_enemy_pieces(board):
+    pieces = {1: {BOT: pc(w=4)}, 4: {ALLIANCE: pc(t=2)}, 5: {EYRIE: pc(w=1)}}
+    assert move(board, pieces) == [Move(1, 4, 1)]
+
+
+def test_enemy_tie_goes_to_lower_priority_number(board):
+    pieces = {1: {BOT: pc(w=4)}, 4: {ALLIANCE: pc(t=1)}, 5: {EYRIE: pc(w=1)}}
+    assert move(board, pieces) == [Move(1, 5, 1)]  # 5 має пріоритет 9, а 4 має 10
+
+
+def test_no_enemies_goes_to_lowest_priority_number(board):
+    assert move(board, {1: {BOT: pc(w=4)}}) == [Move(1, 2, 1)]  # 2 має пріоритет 5
+
+
+def test_no_move_without_rule(board):
+    assert move(board, {1: {BOT: pc(w=4), EYRIE: pc(w=4)}}) == []
+
+
+def test_bot_rules_despite_enemies(board):
+    assert move(board, {1: {BOT: pc(w=5), ALLIANCE: pc(w=2)}}) == [Move(1, 2, 2)]
+
+
+def test_no_move_from_other_suit(board):
+    assert move(board, {1: {BOT: pc(w=5)}}, suit=Suit.RABBIT) == []
+
+
+def test_arrived_warriors_move_on_from_later_clearing(board):
+    pieces = {1: {BOT: pc(w=5)}, 2: {BOT: pc(w=2)}, 3: {ALLIANCE: pc(t=1)}}
+    # 1 → 2 (два воїни), далі в 2 їх стало 4, і 2 (пріоритет 5) іде в 3 з ворогом.
+    assert move(board, pieces, suit=Suit.BIRD) == [Move(1, 2, 2), Move(2, 3, 1)]
+
+
+def test_arrived_warriors_stay_in_already_visited_clearing(board):
+    pieces = {2: {BOT: pc(w=4)}, 3: {BOT: pc(w=3), ALLIANCE: pc(t=1)}}
+    # 2 (пріоритет 5) шле воїна в 3, де їх стає 4, але 3 (пріоритет 2) уже пройдено.
+    assert move(board, pieces, suit=Suit.BIRD) == [Move(2, 3, 1)]
+
+
+def test_moves_do_not_change_given_state(board):
+    s = state(board, {1: {BOT: pc(w=5)}})
+    moves(s, card(Suit.FOX), **STAY)
+    assert s.counts(ClearingId(1), BOT).warriors == 5
+    assert s.counts(ClearingId(2), BOT).warriors == 0
+
+
+def test_moves_use_given_rules(board):
+    assert move(board, {1: {BOT: pc(w=2)}}, stay_warriors=1) == [Move(1, 2, 1)]

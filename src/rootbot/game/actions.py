@@ -25,6 +25,13 @@ class BattleResult:
 
 
 @dataclass(frozen=True)
+class Move:
+    src: ClearingId
+    dst: ClearingId
+    count: int
+
+
+@dataclass(frozen=True)
 class Score:
     points: int
     reason: str
