@@ -102,6 +102,13 @@ class Battle:
 
 
 @dataclass
+class BattleResult:  # resolve_battle(state, battle, rolls) після кидка кубиків
+    bot_warriors_lost: int
+    keep_lost: bool
+    defender_hits: int  # скільки фігурок знімає захисник (не більше, ніж має); у Бродяги це предмети
+
+
+@dataclass
 class Move:
     src: ClearingId
     dst: ClearingId
@@ -150,7 +157,10 @@ sequenceDiagram
     App->>Game: Daylight(state, card)
     loop кожна Action
         alt Battle
-            App->>Op: кубики (RNG або ввести), хто що знімає
+            App->>Op: кубики (RNG або ввести), мечі Бродяги
+            App->>Game: resolve_battle(state, battle, rolls)
+            Game-->>App: BattleResult
+            App->>Op: скільки фігурок зняти захиснику
             App->>Rob: зняти втрати бота
         else Move / Recruit
             App->>Rob: PickPlaceTask × N
