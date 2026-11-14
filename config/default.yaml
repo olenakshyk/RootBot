@@ -45,3 +45,6 @@ supply:
 
 game:
   dice: software             # software | manual
+  birdsong:
+    points_per_clearing: 2   # VP for each clearing the bot rules ...
+    min_warriors: 3          # ... and where it has at least this many warriors

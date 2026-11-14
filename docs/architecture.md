@@ -115,7 +115,7 @@ class Recruit:
 
 
 @dataclass
-class Score:
+class Score:  # Світанок завжди дає рівно один Score, навіть з 0 ПО
     points: int
     reason: str
 
@@ -143,7 +143,7 @@ sequenceDiagram
     App->>Op: показати стан, підтвердити / виправити
     Op->>App: OK
     App->>Game: Birdsong(state)
-    Game-->>App: [Score]
+    Game-->>App: Score
     Op->>App: відкрив ліву карту
     App->>Vis: read_card
     Vis-->>App: OrderCard (оператор підтверджує)
