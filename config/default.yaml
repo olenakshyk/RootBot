@@ -50,3 +50,5 @@ game:
     min_warriors: 3          # ... and where it has at least this many warriors
   move:
     stay_warriors: 3         # a ruled clearing with more warriors sends all but this many away
+  recruit:
+    total_warriors: 25       # all bot warriors; supply = this minus warriors on the map

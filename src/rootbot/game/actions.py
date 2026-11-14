@@ -32,6 +32,12 @@ class Move:
 
 
 @dataclass(frozen=True)
+class Recruit:
+    clearing: ClearingId
+    count: int
+
+
+@dataclass(frozen=True)
 class Score:
     points: int
     reason: str

@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import replace
 
 from rootbot.common.types import ClearingId, Faction, OrderCard, PieceCounts, Suit
-from rootbot.game.actions import Battle, BattleResult, Move, Score
-from rootbot.game.board import Board
+from rootbot.game.actions import Battle, BattleResult, Move, Recruit, Score
+from rootbot.game.board import CLEARING_SUITS, Board
 from rootbot.game.state import BOT, GameState
 
 DIE_FACES = range(4)  # 12-гранний кубик бою має значення 0..3
@@ -113,6 +113,53 @@ def moves(state: GameState, card: OrderCard, *, stay_warriors: int) -> list[Move
         current.pieces.setdefault(dst, {}).setdefault(BOT, PieceCounts()).warriors += count
         result.append(Move(src, dst, count))
     return result
+
+
+def recruits(state: GameState, card: OrderCard, *, total_warriors: int) -> list[Recruit]:
+    """День, крок 3: набір за вартістю крафту карти. Скільки воїнів у бота всього, береться з
+    `game.recruit` у config/default.yaml.
+
+    - 1–3 символи однієї масті: стільки воїнів, скільки символів, на кожну галявину цієї масті,
+      якою бот панує;
+    - по одному символу кожної масті: по 1 воїну на кожну галявину, якою бот панує;
+    - 4 символи «?» (будь-яка масть): 4 воїни в галявину з Keep (якщо Keep знято, нікуди).
+
+    Якщо в запасі воїнів не вистачає, галявини заповнюються в порядку пріоритету, кожна повністю
+    перед наступною; решта пропадає. Карта без вартості крафту дає порожній список, див.
+    `restarts_day`.
+    """
+    cost = card.craft_cost
+    if not cost:
+        return []
+    ruled = [c for c in state.board.by_priority() if state.ruling_faction(c.id) == BOT]
+    if cost == (Suit.ANY,) * 4:
+        targets = [] if state.keep_clearing is None else [state.keep_clearing]
+        per_clearing = len(cost)
+    elif len(cost) == 3 and set(cost) == set(CLEARING_SUITS):
+        targets = [c.id for c in ruled]
+        per_clearing = 1
+    elif len(cost) <= 3 and len(set(cost)) == 1 and cost[0] in CLEARING_SUITS:
+        targets = [c.id for c in ruled if c.suit == cost[0]]
+        per_clearing = len(cost)
+    else:
+        raise ValueError(f"unsupported craft cost {[s.value for s in cost]}")
+
+    on_board = sum(state.counts(c, BOT).warriors for c in state.board.clearings)
+    supply = max(total_warriors - on_board, 0)
+    result = []
+    for clearing in targets:
+        count = min(per_clearing, supply)
+        if count == 0:
+            break
+        result.append(Recruit(clearing, count))
+        supply -= count
+    return result
+
+
+def restarts_day(card: OrderCard) -> bool:
+    """Карта без вартості крафту: після бою й руху День починається заново з наступною картою
+    Розкладу, а якщо карт не лишилося, бот переходить до Вечора. Це робить `app`."""
+    return not card.craft_cost
 
 
 def order_clearings(board: Board, card: OrderCard) -> list[ClearingId]:

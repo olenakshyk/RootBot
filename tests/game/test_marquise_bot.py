@@ -3,14 +3,16 @@ from pathlib import Path
 import pytest
 
 from rootbot.common.types import ClearingId, Faction, OrderCard, PieceCounts, Suit
-from rootbot.game.actions import Battle, BattleResult, Move, Score
+from rootbot.game.actions import Battle, BattleResult, Move, Recruit, Score
 from rootbot.game.board import load_board
 from rootbot.game.marquise_bot import (
     battles,
     birdsong,
     moves,
     order_clearings,
+    recruits,
     resolve_battle,
+    restarts_day,
 )
 from rootbot.game.state import BOT, GameState
 
@@ -308,3 +310,73 @@ def test_moves_do_not_change_given_state(board):
 
 def test_moves_use_given_rules(board):
     assert move(board, {1: {BOT: pc(w=2)}}, stay_warriors=1) == [Move(1, 2, 1)]
+
+
+# --- День: набір ---
+# Мапа «Осінь»: галявини лиса в порядку пріоритету 1, 8, 10, 6; галявина 3 миша (пріоритет 2).
+
+FOX, RABBIT, MOUSE, BIRD, ANY = Suit.FOX, Suit.RABBIT, Suit.MOUSE, Suit.BIRD, Suit.ANY
+SUPPLY = {"total_warriors": 25}  # як у config/default.yaml
+
+
+def recruit(board, pieces, cost, keep=None, **rules):
+    s = GameState(
+        board,
+        pieces={ClearingId(c): here for c, here in pieces.items()},
+        keep_clearing=keep,
+    )
+    return recruits(s, OrderCard(suit=FOX, craft_cost=cost), **(rules or SUPPLY))
+
+
+BOT_AT_1_8_3 = {1: {BOT: pc(w=1)}, 8: {BOT: pc(w=1)}, 3: {BOT: pc(w=1)}}
+
+
+@pytest.mark.parametrize("n", [1, 2, 3])
+def test_recruit_one_suit_on_ruled_clearings_of_that_suit(board, n):
+    assert recruit(board, BOT_AT_1_8_3, (FOX,) * n) == [Recruit(1, n), Recruit(8, n)]
+
+
+def test_recruit_skips_clearings_bot_does_not_rule(board):
+    pieces = {1: {BOT: pc(w=1), EYRIE: pc(w=1)}, 8: {BOT: pc(w=1), ALLIANCE: pc(w=1)}}
+    assert recruit(board, pieces, (FOX,)) == []
+
+
+def test_recruit_one_of_each_suit_on_all_ruled_clearings(board):
+    expected = [Recruit(1, 1), Recruit(3, 1), Recruit(8, 1)]
+    assert recruit(board, BOT_AT_1_8_3, (MOUSE, FOX, RABBIT)) == expected
+
+
+def test_recruit_four_any_into_keep(board):
+    pieces = {1: {BOT: pc(w=1), EYRIE: pc(w=2)}}  # Keep не потребує панування
+    assert recruit(board, pieces, (ANY,) * 4, keep=ClearingId(1)) == [Recruit(1, 4)]
+
+
+def test_recruit_four_any_without_keep(board):
+    assert recruit(board, BOT_AT_1_8_3, (ANY,) * 4) == []
+
+
+def test_no_craft_cost_restarts_day(board):
+    assert recruit(board, BOT_AT_1_8_3, ()) == []
+    assert restarts_day(OrderCard(suit=FOX, craft_cost=()))
+    assert not restarts_day(OrderCard(suit=FOX, craft_cost=(FOX,)))
+
+
+def test_recruit_limited_by_supply_in_priority_order(board):
+    # На мапі 3 воїни, усього 7, отже в запасі 4: галявина 1 отримує 3, галявина 8 лише 1.
+    assert recruit(board, BOT_AT_1_8_3, (FOX,) * 3, total_warriors=7) == [
+        Recruit(1, 3),
+        Recruit(8, 1),
+    ]
+
+
+def test_recruit_empty_supply(board):
+    assert recruit(board, BOT_AT_1_8_3, (FOX,), total_warriors=3) == []
+
+
+@pytest.mark.parametrize(
+    "cost",
+    [(FOX, MOUSE), (ANY,), (BIRD,), (BIRD,) * 4, (FOX, FOX, MOUSE, RABBIT), (FOX,) * 5],
+)
+def test_recruit_rejects_unknown_craft_cost(board, cost):
+    with pytest.raises(ValueError, match="craft cost"):
+        recruit(board, BOT_AT_1_8_3, cost)

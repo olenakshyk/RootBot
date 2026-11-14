@@ -15,6 +15,7 @@ class Suit(Enum):
     RABBIT = "rabbit"
     MOUSE = "mouse"
     BIRD = "bird"  # лише в картах, галявин такої масті немає
+    ANY = "any"  # «?» у вартості крафту: символ будь-якої масті; масті карти такої немає
 
 
 class Faction(Enum):
